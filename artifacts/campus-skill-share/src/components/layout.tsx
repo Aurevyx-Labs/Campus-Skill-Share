@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react"; // ✅ Added useEffect
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -13,7 +13,9 @@ import {
   MessageSquare,
   Menu,
   X,
-  ChevronDown, // ✅ NEW
+  ChevronDown,
+  Moon,
+  Sun, // ✅ Added Moon & Sun icons
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
 
@@ -24,7 +26,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
   });
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false); // ✅ NEW
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // ✅ Dark Mode state
+  const [darkMode, setDarkMode] = useState(false);
+
+  // ✅ On mount: read from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("skillet-theme");
+    if (stored === "dark") {
+      setDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  // ✅ Toggle dark mode
+  const toggleDarkMode = () => {
+    const newDark = !darkMode;
+    setDarkMode(newDark);
+    if (newDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("skillet-theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("skillet-theme", "light");
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/20">
@@ -81,67 +108,76 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
-              <>
-                {/* ✅ Settings Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-2 hover:opacity-80 transition focus:outline-none"
-                    aria-label="Open settings menu"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
-                      {profile?.profileImageUrl ? (
-                        <img
-                          src={profile.profileImageUrl}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <span className="hidden md:inline-block font-medium text-sm">
-                      {profile?.displayName || user?.firstName || "Student"}
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground hidden md:block" />
-                  </button>
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 hover:opacity-80 transition focus:outline-none"
+                  aria-label="Open settings menu"
+                >
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
+                    {profile?.profileImageUrl ? (
+                      <img
+                        src={profile.profileImageUrl}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <span className="hidden md:inline-block font-medium text-sm">
+                    {profile?.displayName || user?.firstName || "Student"}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground hidden md:block" />
+                </button>
 
-                  {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <User className="w-4 h-4" />
-                        Edit Profile
-                      </Link>
-                      <div className="border-t border-border my-1"></div>
-                      <button
-                        onClick={() => {
-                          // Dark mode toggle will go here later
-                          setDropdownOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors w-full text-left"
-                      >
-                        <span className="text-lg">🌙</span> Dark Mode (Coming
-                        soon)
-                      </button>
-                      <div className="border-t border-border my-1"></div>
-                      <button
-                        onClick={() => {
-                          logout();
-                          setDropdownOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-secondary/50 transition-colors w-full text-left"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      Edit Profile
+                    </Link>
+                    <div className="border-t border-border my-1"></div>
+
+                    {/* ✅ Dark Mode toggle */}
+                    <button
+                      onClick={() => {
+                        toggleDarkMode();
+                        setDropdownOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors w-full text-left"
+                    >
+                      {darkMode ? (
+                        <>
+                          <Sun className="w-4 h-4" />
+                          Light Mode
+                        </>
+                      ) : (
+                        <>
+                          <Moon className="w-4 h-4" />
+                          Dark Mode
+                        </>
+                      )}
+                    </button>
+
+                    <div className="border-t border-border my-1"></div>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setDropdownOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-secondary/50 transition-colors w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 onClick={login}
