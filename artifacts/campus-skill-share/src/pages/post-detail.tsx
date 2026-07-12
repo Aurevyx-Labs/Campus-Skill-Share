@@ -10,10 +10,11 @@ import {
   Tag,
   Calendar,
   User,
-  Share2, // ✅ ADDED
+  Share2,
 } from "lucide-react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { format } from "date-fns";
+import { LikeButton } from "@/components/LikeButton"; // ✅ ADDED
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -87,7 +88,6 @@ export default function PostDetailPage() {
           total: data.total,
           ratings: data.ratings || [],
         });
-        // Check if current user has already rated
         if (user?.id && data.ratings?.some((r: any) => r.user.id === user.id)) {
           setRatingSubmitted(true);
         }
@@ -115,7 +115,6 @@ export default function PostDetailPage() {
         }),
       });
 
-      // Refresh ratings after submission
       await fetchPostRatings();
 
       if (!res.ok) {
@@ -129,7 +128,6 @@ export default function PostDetailPage() {
       setRatingSubmitted(true);
     } catch (err) {
       alert("Something went wrong submitting your rating. Please try again.");
-      // Hide form anyway so user doesn't keep trying
       setRatingSubmitted(true);
     } finally {
       setSubmittingRating(false);
@@ -150,7 +148,6 @@ export default function PostDetailPage() {
     }
   };
 
-  // ✅ SHARE FUNCTION
   const handleShare = async () => {
     const url = window.location.href;
     const title = post?.title || "Check out this post on Skillet!";
@@ -209,7 +206,6 @@ export default function PostDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* ✅ REPLACED with flex row + Share button */}
       <div className="flex items-center justify-between mb-6">
         <Link
           href="/feed"
@@ -255,6 +251,11 @@ export default function PostDetailPage() {
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {post.description}
                 </p>
+
+                {/* ✅ LikeButton added here */}
+                <div className="flex items-center gap-2 mt-4">
+                  <LikeButton postId={post.id} />
+                </div>
               </div>
 
               <div>

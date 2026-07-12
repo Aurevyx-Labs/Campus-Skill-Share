@@ -10,6 +10,7 @@ import { useAuth } from "../hooks/useAuth";
 import { Search, Plus, MapPin, Clock } from "lucide-react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { useQueryClient } from "@tanstack/react-query";
+import { LikeButton } from "@/components/LikeButton";
 
 const BASE_CATEGORIES = [
   "Tutoring",
@@ -173,9 +174,14 @@ export default function FeedPage() {
               <h3 className="text-xl font-display font-bold mb-2 group-hover:text-primary transition-colors line-clamp-2">
                 {post.title}
               </h3>
-              <p className="text-muted-foreground text-sm line-clamp-3 mb-6">
+              <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
                 {post.description}
               </p>
+
+              {/* ✅ LikeButton placed here */}
+              <div className="flex items-center gap-2 mb-3">
+                <LikeButton postId={post.id} />
+              </div>
 
               <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/50">
                 <div className="flex items-center gap-2">
