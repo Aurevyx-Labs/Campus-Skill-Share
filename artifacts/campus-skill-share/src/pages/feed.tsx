@@ -55,7 +55,7 @@ export default function FeedPage() {
     query: { enabled: isAuthenticated, queryKey: getGetPostStatsQueryKey() },
   });
 
-  // ✅ 1. Time-based greeting
+  // Time-based greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return { text: "Good morning", emoji: "🌅" };
@@ -64,7 +64,7 @@ export default function FeedPage() {
   };
   const greeting = getGreeting();
 
-  // ✅ 2. Share function for feed cards
+  // Share function for feed cards
   const handleShare = async (postId: string, title: string) => {
     const url = `${window.location.origin}/post/${postId}`;
     if (navigator.share) {
@@ -101,7 +101,6 @@ export default function FeedPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          {/* ✅ Time-based greeting */}
           <h1 className="text-3xl font-display font-bold text-foreground">
             {greeting.emoji} {greeting.text}
           </h1>
@@ -199,6 +198,17 @@ export default function FeedPage() {
                 animationDelay: `${index * 50}ms`,
               }}
             >
+              {/* ✅ Image display – added here */}
+              {post.imageUrl && (
+                <div className="mb-4 -mt-6 -mx-6 rounded-t-2xl overflow-hidden">
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    className="w-full h-48 object-cover"
+                  />
+                </div>
+              )}
+
               <div className="flex justify-between items-start mb-4">
                 <CategoryBadge category={post.category} />
                 {post.priceRate && (
@@ -214,7 +224,7 @@ export default function FeedPage() {
                 {post.description}
               </p>
 
-              {/* ✅ Like + Bookmark + Share */}
+              {/* Like + Bookmark + Share */}
               <div className="flex items-center gap-2 mb-3">
                 <LikeButton postId={post.id} />
                 <BookmarkButton postId={post.id} />
@@ -248,7 +258,6 @@ export default function FeedPage() {
                   </div>
                   <span className="text-sm font-medium text-foreground truncate max-w-[120px] flex items-center gap-1">
                     {post.author.displayName}
-                    {/* ✅ Admin Crown Badge */}
                     {post.author.role === "admin" && (
                       <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
                     )}

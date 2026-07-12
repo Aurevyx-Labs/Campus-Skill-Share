@@ -15,7 +15,7 @@ import {
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { format } from "date-fns";
 import { LikeButton } from "@/components/LikeButton";
-import { BookmarkButton } from "@/components/BookmarkButton"; // ✅ ADDED
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -245,6 +245,17 @@ export default function PostDetailPage() {
 
           <div className="flex flex-col md:flex-row gap-8">
             <div className="flex-1 space-y-8">
+              {/* ✅ Image display – added here */}
+              {post.imageUrl && (
+                <div className="rounded-2xl overflow-hidden -mt-2">
+                  <img
+                    src={post.imageUrl}
+                    alt={post.title}
+                    className="w-full max-h-96 object-cover"
+                  />
+                </div>
+              )}
+
               <div>
                 <h3 className="text-lg font-bold font-display mb-3 text-foreground">
                   About this skill
@@ -253,7 +264,6 @@ export default function PostDetailPage() {
                   {post.description}
                 </p>
 
-                {/* ✅ LikeButton + BookmarkButton */}
                 <div className="flex items-center gap-4 mt-4">
                   <LikeButton postId={post.id} />
                   <BookmarkButton postId={post.id} />
