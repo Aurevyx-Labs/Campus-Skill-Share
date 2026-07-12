@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react"; // ✅ Added useEffect
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -15,9 +15,10 @@ import {
   X,
   ChevronDown,
   Moon,
-  Sun, // ✅ Added Moon & Sun icons
+  Sun,
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
+import { ScrollToTop } from "./ScrollToTop"; // ✅ Added
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, login, logout } = useAuth();
@@ -28,10 +29,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // ✅ Dark Mode state
+  // Dark Mode state
   const [darkMode, setDarkMode] = useState(false);
 
-  // ✅ On mount: read from localStorage
+  // On mount: read from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("skillet-theme");
     if (stored === "dark") {
@@ -40,7 +41,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ✅ Toggle dark mode
+  // Toggle dark mode
   const toggleDarkMode = () => {
     const newDark = !darkMode;
     setDarkMode(newDark);
@@ -143,7 +144,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </Link>
                     <div className="border-t border-border my-1"></div>
 
-                    {/* ✅ Dark Mode toggle */}
                     <button
                       onClick={() => {
                         toggleDarkMode();
@@ -252,10 +252,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
       </header>
-
       <main className="flex-1 container mx-auto px-4 py-6">{children}</main>
-
       <ChatbotWidget />
+      <ScrollToTop /> {/* ✅ Added */}
     </div>
   );
 }
