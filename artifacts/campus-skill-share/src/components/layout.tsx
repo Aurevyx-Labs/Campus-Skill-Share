@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  ChevronDown, // ✅ NEW
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
 
@@ -23,6 +24,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   });
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false); // ✅ NEW
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/20">
@@ -55,14 +57,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               Chats
             </Link>
-            {/* === NEW: Explore People === */}
             <Link
               to="/users"
               className="text-sm font-medium hover:text-primary transition-colors"
             >
               Explore People
             </Link>
-            {/* === NEW: Saved (Bookmarks) === */}
             <Link
               to="/bookmarks"
               className="text-sm font-medium hover:text-primary transition-colors"
@@ -82,32 +82,65 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-2 hover:opacity-80 transition"
-                >
-                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
-                    {profile?.profileImageUrl ? (
-                      <img
-                        src={profile.profileImageUrl}
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <span className="hidden md:inline-block font-medium text-sm">
-                    {profile?.displayName || user?.firstName || "Student"}
-                  </span>
-                </Link>
-                <button
-                  onClick={logout}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
-                  aria-label="Log out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+                {/* ✅ Settings Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-2 hover:opacity-80 transition focus:outline-none"
+                    aria-label="Open settings menu"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center border border-border overflow-hidden">
+                      {profile?.profileImageUrl ? (
+                        <img
+                          src={profile.profileImageUrl}
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className="hidden md:inline-block font-medium text-sm">
+                      {profile?.displayName || user?.firstName || "Student"}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground hidden md:block" />
+                  </button>
+
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <Link
+                        to="/profile"
+                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        Edit Profile
+                      </Link>
+                      <div className="border-t border-border my-1"></div>
+                      <button
+                        onClick={() => {
+                          // Dark mode toggle will go here later
+                          setDropdownOpen(false);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors w-full text-left"
+                      >
+                        <span className="text-lg">🌙</span> Dark Mode (Coming
+                        soon)
+                      </button>
+                      <div className="border-t border-border my-1"></div>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setDropdownOpen(false);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-secondary/50 transition-colors w-full text-left"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <button
@@ -153,14 +186,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
               >
                 Chats
               </Link>
-              {/* === NEW: Explore People (mobile) === */}
               <Link
                 to="/users"
                 className="text-sm font-medium hover:text-primary transition-colors"
               >
                 Explore People
               </Link>
-              {/* === NEW: Saved (Bookmarks) (mobile) === */}
               <Link
                 to="/bookmarks"
                 className="text-sm font-medium hover:text-primary transition-colors"
