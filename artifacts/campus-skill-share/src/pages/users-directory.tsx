@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Search, User } from "lucide-react";
+import { useAuth } from "../hooks/useAuth"; // ✅ Added
 
 interface UserProfile {
   id: string;
@@ -10,12 +11,13 @@ interface UserProfile {
 }
 
 export default function UsersDirectoryPage() {
+  const { user: currentUser } = useAuth(); // ✅ Get logged-in user
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetch("/api/users")
+    fetch("/api/users", { credentials: "include" }) // ✅ Added credentials
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) setUsers(data.users || data || []);
@@ -92,8 +94,14 @@ export default function UsersDirectoryPage() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">
+                {/* ✅ "You" badge added here */}
+                <p className="font-medium text-foreground truncate flex items-center gap-2">
                   {user.displayName}
+                  {currentUser?.id === user.id && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      You
+                    </span>
+                  )}
                 </p>
                 <p className="text-sm text-muted-foreground truncate">
                   {user.university || "No university"}

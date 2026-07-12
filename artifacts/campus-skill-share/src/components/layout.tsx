@@ -18,7 +18,7 @@ import {
   Sun,
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
-import { ScrollToTop } from "./ScrollToTop"; // ✅ Added
+import { ScrollToTop } from "./ScrollToTop";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, login, logout } = useAuth();
@@ -165,10 +165,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </button>
 
                     <div className="border-t border-border my-1"></div>
+
+                    {/* ✅ Logout with confirmation */}
                     <button
                       onClick={() => {
-                        logout();
-                        setDropdownOpen(false);
+                        if (
+                          window.confirm("Are you sure you want to log out?")
+                        ) {
+                          logout();
+                          setDropdownOpen(false);
+                        }
                       }}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-secondary/50 transition-colors w-full text-left"
                     >
@@ -254,7 +260,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </header>
       <main className="flex-1 container mx-auto px-4 py-6">{children}</main>
       <ChatbotWidget />
-      <ScrollToTop /> {/* ✅ Added */}
+      <ScrollToTop />
     </div>
   );
 }
