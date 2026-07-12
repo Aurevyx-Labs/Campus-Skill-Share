@@ -1,11 +1,10 @@
 import { Router, Request, Response } from "express";
-import { db, likesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db } from "@workspace/db";
 import { getSessionId, getSession } from "../lib/auth";
 
 const router = Router();
 
-// GET /api/posts/:postId/likes - get like count and whether current user liked it
+// GET /api/likes/:postId - get like count and whether current user liked it
 router.get("/:postId", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -33,7 +32,7 @@ router.get("/:postId", async (req: Request, res: Response) => {
   return res.json({ total, liked });
 });
 
-// POST /api/posts/:postId/like - like a post (or unlike if already liked)
+// POST /api/likes/:postId - toggle like (add or remove)
 router.post("/:postId", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -59,9 +58,10 @@ router.post("/:postId", async (req: Request, res: Response) => {
     return res.json({ liked: false, message: "Unliked" });
   } else {
     // Like: insert
+    const id = require("crypto").randomBytes(16).toString("hex");
     await db.$client.query(
-      `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
-      [postId, userId],
+      `INSERT INTO likes (id, post_id, user_id) VALUES ($1, $2, $3)`,
+      [id, postId, userId],
     );
     return res.status(201).json({ liked: true, message: "Liked" });
   }
