@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { format } from "date-fns";
-import { LikeButton } from "@/components/LikeButton"; // ✅ ADDED
+import { LikeButton } from "@/components/LikeButton";
+import { BookmarkButton } from "@/components/BookmarkButton"; // ✅ ADDED
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -252,9 +253,10 @@ export default function PostDetailPage() {
                   {post.description}
                 </p>
 
-                {/* ✅ LikeButton added here */}
-                <div className="flex items-center gap-2 mt-4">
+                {/* ✅ LikeButton + BookmarkButton */}
+                <div className="flex items-center gap-4 mt-4">
                   <LikeButton postId={post.id} />
+                  <BookmarkButton postId={post.id} />
                 </div>
               </div>
 

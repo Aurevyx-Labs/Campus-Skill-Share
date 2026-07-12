@@ -11,6 +11,7 @@ import { Search, Plus, MapPin, Clock } from "lucide-react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { useQueryClient } from "@tanstack/react-query";
 import { LikeButton } from "@/components/LikeButton";
+import { BookmarkButton } from "@/components/BookmarkButton"; // ✅ Added
 
 const BASE_CATEGORIES = [
   "Tutoring",
@@ -178,9 +179,10 @@ export default function FeedPage() {
                 {post.description}
               </p>
 
-              {/* ✅ LikeButton placed here */}
+              {/* ✅ LikeButton + BookmarkButton */}
               <div className="flex items-center gap-2 mb-3">
                 <LikeButton postId={post.id} />
+                <BookmarkButton postId={post.id} />
               </div>
 
               <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/50">

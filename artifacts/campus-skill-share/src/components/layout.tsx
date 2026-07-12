@@ -62,6 +62,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               Explore People
             </Link>
+            {/* === NEW: Saved (Bookmarks) === */}
+            <Link
+              to="/bookmarks"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Saved
+            </Link>
             {profile?.role === "admin" && (
               <Link
                 to="/admin"
@@ -152,6 +159,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 className="text-sm font-medium hover:text-primary transition-colors"
               >
                 Explore People
+              </Link>
+              {/* === NEW: Saved (Bookmarks) (mobile) === */}
+              <Link
+                to="/bookmarks"
+                className="text-sm font-medium hover:text-primary transition-colors"
+              >
+                Saved
               </Link>
               {profile?.role === "admin" && (
                 <Link
