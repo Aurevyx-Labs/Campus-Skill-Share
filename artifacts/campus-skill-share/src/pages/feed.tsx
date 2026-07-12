@@ -7,7 +7,7 @@ import {
   getGetPostStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "../hooks/useAuth";
-import { Search, Plus, MapPin, Clock, Share2 } from "lucide-react"; // ✅ Added Share2
+import { Search, Plus, MapPin, Clock, Share2, Crown } from "lucide-react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { useQueryClient } from "@tanstack/react-query";
 import { LikeButton } from "@/components/LikeButton";
@@ -23,7 +23,7 @@ const BASE_CATEGORIES = [
 ];
 
 export default function FeedPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -55,7 +55,16 @@ export default function FeedPage() {
     query: { enabled: isAuthenticated, queryKey: getGetPostStatsQueryKey() },
   });
 
-  // ✅ Share function for feed cards
+  // ✅ 1. Time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { text: "Good morning", emoji: "🌅" };
+    if (hour < 17) return { text: "Good afternoon", emoji: "☀️" };
+    return { text: "Good evening", emoji: "🌙" };
+  };
+  const greeting = getGreeting();
+
+  // ✅ 2. Share function for feed cards
   const handleShare = async (postId: string, title: string) => {
     const url = `${window.location.origin}/post/${postId}`;
     if (navigator.share) {
@@ -92,11 +101,12 @@ export default function FeedPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
+          {/* ✅ Time-based greeting */}
           <h1 className="text-3xl font-display font-bold text-foreground">
-            Skill Feed
+            {greeting.emoji} {greeting.text}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Discover what your peers are offering.
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Here's what your campus is sharing today.
           </p>
         </div>
         <Link
@@ -204,7 +214,7 @@ export default function FeedPage() {
                 {post.description}
               </p>
 
-              {/* ✅ LikeButton + BookmarkButton + ShareButton */}
+              {/* ✅ Like + Bookmark + Share */}
               <div className="flex items-center gap-2 mb-3">
                 <LikeButton postId={post.id} />
                 <BookmarkButton postId={post.id} />
@@ -236,8 +246,12 @@ export default function FeedPage() {
                       </div>
                     )}
                   </div>
-                  <span className="text-sm font-medium text-foreground truncate max-w-[120px]">
+                  <span className="text-sm font-medium text-foreground truncate max-w-[120px] flex items-center gap-1">
                     {post.author.displayName}
+                    {/* ✅ Admin Crown Badge */}
+                    {post.author.role === "admin" && (
+                      <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                    )}
                   </span>
                 </div>
                 {post.availability && (
