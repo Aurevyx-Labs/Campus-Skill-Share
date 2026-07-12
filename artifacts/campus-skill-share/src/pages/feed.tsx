@@ -7,11 +7,11 @@ import {
   getGetPostStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "../hooks/useAuth";
-import { Search, Plus, MapPin, Clock } from "lucide-react";
+import { Search, Plus, MapPin, Clock, Share2 } from "lucide-react"; // ✅ Added Share2
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { useQueryClient } from "@tanstack/react-query";
 import { LikeButton } from "@/components/LikeButton";
-import { BookmarkButton } from "@/components/BookmarkButton"; // ✅ Added
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 const BASE_CATEGORIES = [
   "Tutoring",
@@ -54,6 +54,31 @@ export default function FeedPage() {
   const { data: stats } = useGetPostStats({
     query: { enabled: isAuthenticated, queryKey: getGetPostStatsQueryKey() },
   });
+
+  // ✅ Share function for feed cards
+  const handleShare = async (postId: string, title: string) => {
+    const url = `${window.location.origin}/post/${postId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: `Check out this post: ${title}`,
+          url: url,
+        });
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Share failed", error);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        alert("✅ Link copied to clipboard!");
+      } catch (error) {
+        alert("Could not copy link. Please copy the URL manually.");
+      }
+    }
+  };
 
   if (authLoading || !isAuthenticated) return null;
 
@@ -179,10 +204,21 @@ export default function FeedPage() {
                 {post.description}
               </p>
 
-              {/* ✅ LikeButton + BookmarkButton */}
+              {/* ✅ LikeButton + BookmarkButton + ShareButton */}
               <div className="flex items-center gap-2 mb-3">
                 <LikeButton postId={post.id} />
                 <BookmarkButton postId={post.id} />
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleShare(post.id, post.title);
+                  }}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="Share post"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
               </div>
 
               <div className="mt-auto flex items-center justify-between pt-4 border-t border-border/50">
