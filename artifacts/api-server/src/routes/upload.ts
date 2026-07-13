@@ -5,14 +5,15 @@ import { getSessionId, getSession } from "../lib/auth";
 
 const router = Router();
 
-// Initialize Supabase client with environment variables
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client with SERVICE_ROLE key (bypasses RLS)
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!, // ← using service_role, not anon
+);
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -24,42 +25,48 @@ const upload = multer({
 
 // POST /api/upload/image
 router.post("/image", upload.single("image"), async (req: any, res: any) => {
-  const sid = getSessionId(req);
-  const session = sid ? await getSession(sid) : null;
-  if (!session?.user) {
-    return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const sid = getSessionId(req);
+    const session = sid ? await getSession(sid) : null;
+    if (!session?.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+      return res.status(500).json({ error: "Supabase credentials missing" });
+    }
+
+    const fileExt = req.file.originalname.split(".").pop();
+    const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from("posts")
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Supabase upload error:", error);
+      return res
+        .status(500)
+        .json({ error: "Supabase upload failed: " + error.message });
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("posts")
+      .getPublicUrl(fileName);
+
+    return res.json({ imageUrl: urlData.publicUrl });
+  } catch (err: any) {
+    console.error("Upload error:", err);
+    return res.status(500).json({ error: "Upload error: " + err.message });
   }
-
-  if (!req.file) {
-    return res.status(400).json({ error: "No image file provided" });
-  }
-
-  // Generate a unique filename
-  const fileExt = req.file.originalname.split(".").pop();
-  const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
-
-  // Upload to Supabase Storage
-  const { data, error } = await supabase.storage
-    .from("posts") // bucket name
-    .upload(fileName, req.file.buffer, {
-      contentType: req.file.mimetype,
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-  if (error) {
-    console.error("Supabase upload error:", error);
-    return res.status(500).json({ error: "Failed to upload image" });
-  }
-
-  // Get public URL
-  const { data: urlData } = supabase.storage
-    .from("posts")
-    .getPublicUrl(fileName);
-
-  const imageUrl = urlData.publicUrl;
-
-  return res.json({ imageUrl });
 });
 
 export default router;
