@@ -198,9 +198,9 @@ export default function FeedPage() {
                 animationDelay: `${index * 50}ms`,
               }}
             >
-              {/* ✅ Image display – added here */}
+              {/* ✅ Image display – fixed height and background */}
               {post.imageUrl && (
-                <div className="mb-4 -mt-6 -mx-6 rounded-t-2xl overflow-hidden">
+                <div className="mb-4 -mt-6 -mx-6 rounded-t-2xl overflow-hidden max-h-48 bg-secondary/20">
                   <img
                     src={post.imageUrl}
                     alt={post.title}

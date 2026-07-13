@@ -245,13 +245,13 @@ export default function PostDetailPage() {
 
           <div className="flex flex-col md:flex-row gap-8">
             <div className="flex-1 space-y-8">
-              {/* ✅ Image display – added here */}
+              {/* ✅ Image display – fixed height and background */}
               {post.imageUrl && (
-                <div className="rounded-2xl overflow-hidden -mt-2">
+                <div className="rounded-2xl overflow-hidden max-h-[400px] bg-secondary/20">
                   <img
                     src={post.imageUrl}
                     alt={post.title}
-                    className="w-full max-h-96 object-cover"
+                    className="w-full h-full object-contain"
                   />
                 </div>
               )}
