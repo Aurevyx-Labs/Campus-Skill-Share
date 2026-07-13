@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
-import { db, postsTable, usersTable } from "@workspace/db";
-import { eq, desc, and, count } from "drizzle-orm";
+import { db } from "@workspace/db";
 import { resolveDisplayName } from "../lib/displayName";
 import { getSessionId, getSession } from "../lib/auth";
 
@@ -22,87 +21,78 @@ router.get("/", async (req: Request, res: Response) => {
     offset = "0",
   } = req.query as Record<string, string>;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  let sqlQuery = `
+    SELECT p.id, p.title, p.category, p.description, p.availability, p.price_rate, p.university, p.image_url, p.created_at,
+           u.id as author_id, u.display_name as author_display_name, u.first_name as author_first_name,
+           u.last_name as author_last_name, u.profile_image_url as author_profile_image_url
+    FROM posts p
+    JOIN users u ON p.user_id = u.id
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+  let paramIndex = 1;
 
   if (category && category !== "all") {
-    conditions.push(
-      eq(
-        postsTable.category,
-        category as
-          | "Tutoring"
-          | "Design"
-          | "Music"
-          | "Tech"
-          | "Language"
-          | "Other",
-      ),
-    );
+    sqlQuery += ` AND p.category = $${paramIndex}`;
+    params.push(category);
+    paramIndex++;
   }
-
   if (authorId) {
-    conditions.push(eq(postsTable.userId, authorId));
+    sqlQuery += ` AND p.user_id = $${paramIndex}`;
+    params.push(authorId);
+    paramIndex++;
+  }
+  if (search) {
+    sqlQuery += ` AND (p.title ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
+    params.push(`%${search}%`);
+    paramIndex++;
   }
 
-  let postsQuery = db
-    .select({
-      id: postsTable.id,
-      title: postsTable.title,
-      category: postsTable.category,
-      description: postsTable.description,
-      availability: postsTable.availability,
-      priceRate: postsTable.priceRate,
-      university: postsTable.university,
-      imageUrl: postsTable.imageUrl,
-      createdAt: postsTable.createdAt,
-      authorId: usersTable.id,
-      authorDisplayName: usersTable.displayName,
-      authorFirstName: usersTable.firstName,
-      authorLastName: usersTable.lastName,
-      authorProfileImageUrl: usersTable.profileImageUrl,
-    })
-    .from(postsTable)
-    .innerJoin(usersTable, eq(postsTable.userId, usersTable.id))
-    .orderBy(desc(postsTable.createdAt))
-    .limit(parseInt(limit))
-    .offset(parseInt(offset));
+  // Count total
+  const countQuery = sqlQuery.replace(
+    /SELECT .*? FROM /,
+    "SELECT COUNT(*) as total FROM ",
+  );
+  const countQueryClean = countQuery.replace(/ ORDER BY .*$/, "");
+  const countResult = await db.$client.query(
+    countQueryClean,
+    params.slice(0, paramIndex - 1),
+  );
+  const total = parseInt(countResult.rows[0]?.total || "0", 10);
 
-  const rawPosts =
-    conditions.length > 0
-      ? await postsQuery.where(and(...conditions))
-      : await postsQuery;
+  sqlQuery += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+  params.push(parseInt(limit), parseInt(offset));
 
-  const posts = rawPosts
-    .filter(
-      (p) =>
-        !search ||
-        p.title.toLowerCase().includes(search.toLowerCase()) ||
-        p.description.toLowerCase().includes(search.toLowerCase()),
-    )
-    .map((p) => ({
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      description: p.description,
-      availability: p.availability ?? null,
-      priceRate: p.priceRate ?? null,
-      university: p.university ?? null,
-      imageUrl: p.imageUrl ?? null,
-      createdAt: p.createdAt.toISOString(),
-      author: {
-        id: p.authorId,
-        displayName: resolveDisplayName(
-          p.authorDisplayName,
-          p.authorFirstName,
-          p.authorLastName,
-        ),
-        profileImageUrl: p.authorProfileImageUrl ?? null,
-      },
-    }));
+  const result = await db.$client.query(sqlQuery, params);
 
-  return res.json({ posts, total: posts.length });
+  const posts = result.rows.map((row: any) => ({
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    description: row.description,
+    availability: row.availability ?? null,
+    priceRate: row.price_rate ?? null,
+    university: row.university ?? null,
+    imageUrl: row.image_url ?? null,
+    createdAt:
+      row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : row.created_at,
+    author: {
+      id: row.author_id,
+      displayName: resolveDisplayName(
+        row.author_display_name,
+        row.author_first_name,
+        row.author_last_name,
+      ),
+      profileImageUrl: row.author_profile_image_url ?? null,
+    },
+  }));
+
+  return res.json({ posts, total });
 });
 
-// GET /posts/stats - category breakdown
+// GET /posts/stats - category breakdown (raw SQL)
 router.get("/stats", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -110,26 +100,24 @@ router.get("/stats", async (req: Request, res: Response) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const stats = await db
-    .select({
-      category: postsTable.category,
-      count: count(),
-    })
-    .from(postsTable)
-    .groupBy(postsTable.category);
+  const result = await db.$client.query(
+    `SELECT category, COUNT(*) as count
+     FROM posts
+     GROUP BY category
+     ORDER BY count DESC`,
+  );
 
-  const total = stats.reduce((sum, s) => sum + Number(s.count), 0);
+  const categories = result.rows.map((row: any) => ({
+    category: row.category,
+    count: Number(row.count),
+  }));
 
-  return res.json({
-    categories: stats.map((s) => ({
-      category: s.category,
-      count: Number(s.count),
-    })),
-    total,
-  });
+  const total = categories.reduce((sum, c) => sum + c.count, 0);
+
+  return res.json({ categories, total });
 });
 
-// GET /posts/:id - get a single post by ID (using Drizzle ORM)
+// GET /posts/:id - get a single post by ID
 router.get("/:id", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -139,52 +127,38 @@ router.get("/:id", async (req: Request, res: Response) => {
 
   const postId = req.params.id;
 
-  const result = await db
-    .select({
-      id: postsTable.id,
-      title: postsTable.title,
-      category: postsTable.category,
-      description: postsTable.description,
-      availability: postsTable.availability,
-      priceRate: postsTable.priceRate,
-      university: postsTable.university,
-      imageUrl: postsTable.imageUrl,
-      createdAt: postsTable.createdAt,
-      status: postsTable.status,
-      authorId: usersTable.id,
-      authorDisplayName: usersTable.displayName,
-      authorFirstName: usersTable.firstName,
-      authorLastName: usersTable.lastName,
-      authorProfileImageUrl: usersTable.profileImageUrl,
-    })
-    .from(postsTable)
-    .innerJoin(usersTable, eq(postsTable.userId, usersTable.id))
-    .where(eq(postsTable.id, postId));
+  const result = await db.$client.query(
+    `SELECT p.id, p.title, p.description, p.category, p.availability, p.price_rate, p.university, p.image_url, p.created_at, p.status,
+            u.id as author_id, u.display_name as author_display_name, u.profile_image_url as author_profile_image_url
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.id = $1`,
+    [postId],
+  );
 
-  if (result.length === 0) {
+  if (result.rows.length === 0) {
     return res.status(404).json({ error: "Post not found" });
   }
 
-  const p = result[0];
+  const row = result.rows[0];
   return res.json({
-    id: p.id,
-    title: p.title,
-    category: p.category,
-    description: p.description,
-    availability: p.availability ?? null,
-    priceRate: p.priceRate ?? null,
-    university: p.university ?? null,
-    imageUrl: p.imageUrl ?? null,
-    createdAt: p.createdAt.toISOString(),
-    status: p.status,
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    availability: row.availability,
+    priceRate: row.price_rate,
+    university: row.university,
+    imageUrl: row.image_url,
+    createdAt:
+      row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : row.created_at,
+    status: row.status,
     author: {
-      id: p.authorId,
-      displayName: resolveDisplayName(
-        p.authorDisplayName,
-        p.authorFirstName,
-        p.authorLastName,
-      ),
-      profileImageUrl: p.authorProfileImageUrl ?? null,
+      id: row.author_id,
+      displayName: row.author_display_name,
+      profileImageUrl: row.author_profile_image_url,
     },
   });
 });
@@ -226,26 +200,41 @@ router.post("/", async (req: Request, res: Response) => {
     "Tech",
     "Language",
     "Other",
+    "Textbooks",
+    "Gadgets",
+    "Fashion",
+    "Hostel Essentials",
+    "Tutor Booking",
+    "Designers",
+    "Programmers",
+    "Photographers",
+    "Makeup Artists",
+    "Tailors",
+    "Barbers",
   ];
   if (!validCategories.includes(category)) {
     return res.status(400).json({ error: "Invalid category" });
   }
 
-  const [post] = await db
-    .insert(postsTable)
-    .values({
-      userId: session.user.id,
+  const result = await db.$client.query(
+    `INSERT INTO posts (user_id, title, category, description, availability, price_rate, university, image_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, title, category, description, availability, price_rate, university, image_url, created_at`,
+    [
+      session.user.id,
       title,
       category,
       description,
-      availability: availability || null,
-      priceRate: priceRate || null,
-      university: university || null,
-      imageUrl: imageUrl || null,
-    })
-    .returning();
+      availability || null,
+      priceRate || null,
+      university || null,
+      imageUrl || null,
+    ],
+  );
 
+  const post = result.rows[0];
   const user = session.user;
+
   return res.status(201).json({
     id: post.id,
     title: post.title,
@@ -253,8 +242,12 @@ router.post("/", async (req: Request, res: Response) => {
     university: post.university,
     description: post.description,
     availability: post.availability ?? null,
-    priceRate: post.priceRate ?? null,
-    createdAt: post.createdAt.toISOString(),
+    priceRate: post.price_rate ?? null,
+    imageUrl: post.image_url ?? null,
+    createdAt:
+      post.created_at instanceof Date
+        ? post.created_at.toISOString()
+        : post.created_at,
     author: {
       id: user.id,
       displayName: resolveDisplayName(
@@ -276,21 +269,22 @@ router.delete("/:postId", async (req: Request, res: Response) => {
   }
 
   const { postId } = req.params;
-  const rows = await db
-    .select()
-    .from(postsTable)
-    .where(eq(postsTable.id, postId));
 
-  if (rows.length === 0) {
+  const checkResult = await db.$client.query(
+    `SELECT id, user_id FROM posts WHERE id = $1`,
+    [postId],
+  );
+
+  if (checkResult.rows.length === 0) {
     return res.status(404).json({ error: "Post not found" });
   }
 
-  const post = rows[0];
-  if (session.user.role !== "admin" && post.userId !== session.user.id) {
+  const post = checkResult.rows[0];
+  if (session.user.role !== "admin" && post.user_id !== session.user.id) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  await db.delete(postsTable).where(eq(postsTable.id, postId));
+  await db.$client.query(`DELETE FROM posts WHERE id = $1`, [postId]);
   return res.json({ success: true });
 });
 
@@ -303,26 +297,27 @@ router.patch("/:postId/complete", async (req: Request, res: Response) => {
   }
 
   const { postId } = req.params;
-  const rows = await db
-    .select()
-    .from(postsTable)
-    .where(eq(postsTable.id, postId));
 
-  if (rows.length === 0) {
+  const checkResult = await db.$client.query(
+    `SELECT id, user_id FROM posts WHERE id = $1`,
+    [postId],
+  );
+
+  if (checkResult.rows.length === 0) {
     return res.status(404).json({ error: "Post not found" });
   }
 
-  const post = rows[0];
-  if (session.user.role !== "admin" && post.userId !== session.user.id) {
+  const post = checkResult.rows[0];
+  if (session.user.role !== "admin" && post.user_id !== session.user.id) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  const [updated] = await db
-    .update(postsTable)
-    .set({ status: "completed" })
-    .where(eq(postsTable.id, postId))
-    .returning();
+  const result = await db.$client.query(
+    `UPDATE posts SET status = 'completed' WHERE id = $1 RETURNING *`,
+    [postId],
+  );
 
+  const updated = result.rows[0];
   return res.json({ success: true, post: updated });
 });
 
