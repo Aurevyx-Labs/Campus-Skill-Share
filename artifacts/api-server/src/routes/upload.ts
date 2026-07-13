@@ -1,13 +1,30 @@
 import { Router } from "express";
 import multer from "multer";
-import { Client } from "@replit/object-storage";
+import path from "path";
+import fs from "fs";
+import { getSessionId, getSession } from "../lib/auth";
 
 const router = Router();
-const client = new Client();
 
+// Ensure storage directory exists
+const storageDir = path.join(process.cwd(), "storage", "posts");
+if (!fs.existsSync(storageDir)) {
+  fs.mkdirSync(storageDir, { recursive: true });
+}
+
+// Configure multer to save locally
 const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, storageDir);
+    },
+    filename: (req, file, cb) => {
+      const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      const ext = path.extname(file.originalname);
+      cb(null, unique + ext);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -17,45 +34,28 @@ const upload = multer({
   },
 });
 
-// POST /upload/image - upload a single image, returns its URL
-router.post("/image", upload.single("image"), async (req, res) => {
-  if (!req.isAuthenticated()) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+// POST /api/upload/image
+router.post("/image", upload.single("image"), async (req: any, res: any) => {
+  const sid = getSessionId(req);
+  const session = sid ? await getSession(sid) : null;
+  if (!session?.user) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   if (!req.file) {
-    res.status(400).json({ error: "No image file provided" });
-    return;
+    return res.status(400).json({ error: "No image file provided" });
   }
 
-  const ext = req.file.originalname.split(".").pop();
-  const fileName = `posts/${req.user.id}-${Date.now()}.${ext}`;
-
-  const { ok, error } = await client.uploadFromBytes(fileName, req.file.buffer);
-
-  if (!ok) {
-    console.error("Upload failed:", error);
-    res.status(500).json({ error: "Failed to upload image" });
-    return;
-  }
-
-  const imageUrl = `/api/upload/serve/${fileName}`;
-  res.json({ imageUrl });
+  // Return the URL to access the image
+  const imageUrl = `/uploads/${req.file.filename}`;
+  return res.json({ imageUrl });
 });
 
-// GET /upload/serve/:path - serve an uploaded image
-router.get("/serve/*splat", async (req, res) => {
-  const fileName = req.params.splat;
-  const { ok, value, error } = await client.downloadAsBytes(fileName);
-
-  if (!ok) {
-    res.status(404).json({ error: "Image not found" });
-    return;
-  }
-
-  res.set("Content-Type", "image/jpeg");
-  res.send(value[0]);
-});
+// Static route to serve uploaded images
+import express from "express";
+router.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "storage", "posts")),
+);
 
 export default router;

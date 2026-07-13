@@ -7,20 +7,35 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+type PostFormData = PostFormValues & { imageUrl?: string };
+
+// ✅ Full category list (including Marketplace & Freelancing)
+const CATEGORIES = [
+  "Tutoring",
+  "Design",
+  "Music",
+  "Tech",
+  "Language",
+  "Other",
+  "Textbooks",
+  "Gadgets",
+  "Fashion",
+  "Hostel Essentials",
+  "Tutor Booking",
+  "Designers",
+  "Programmers",
+  "Photographers",
+  "Makeup Artists",
+  "Tailors",
+  "Barbers",
+] as const;
 
 const postSchema = z.object({
   title: z
     .string()
     .min(3, "Title must be at least 3 characters")
     .max(150, "Title too long"),
-  category: z.enum([
-    "Tutoring",
-    "Design",
-    "Music",
-    "Tech",
-    "Language",
-    "Other",
-  ]),
+  category: z.enum(CATEGORIES),
   description: z
     .string()
     .min(20, "Description must be at least 20 characters")
@@ -51,6 +66,7 @@ export default function NewPostPage() {
       university: "",
     },
   });
+
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -59,44 +75,54 @@ export default function NewPostPage() {
   }
 
   const onSubmit = async (data: PostFormValues) => {
+    // ✅ Image is mandatory
+    if (!imageFile) {
+      toast({
+        title: "Image required",
+        description: "Please upload a photo to prevent scams and build trust.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     let imageUrl: string | undefined;
 
-    if (imageFile) {
-      setUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("image", imageFile);
-        const res = await fetch("/api/upload/image", {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
-        const result = await res.json();
-        if (res.ok) {
-          imageUrl = result.imageUrl;
-        } else {
-          toast({
-            title: "Image upload failed",
-            description: result.error,
-            variant: "destructive",
-          });
-          setUploading(false);
-          return;
-        }
-      } catch (err) {
+    // Upload image
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", imageFile);
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const result = await res.json();
+      if (res.ok) {
+        imageUrl = result.imageUrl;
+      } else {
         toast({
           title: "Image upload failed",
-          description: "Please try again.",
+          description: result.error || "Please try again.",
           variant: "destructive",
         });
         setUploading(false);
         return;
       }
+    } catch (err) {
+      toast({
+        title: "Image upload failed",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
       setUploading(false);
+      return;
     }
+    setUploading(false);
 
+    // Submit post
     createPost.mutate(
-      { data: { ...data, imageUrl } },
+      { data: { ...data, imageUrl } as any },
       {
         onSuccess: () => {
           toast({
@@ -150,6 +176,7 @@ export default function NewPostPage() {
               </p>
             )}
           </div>
+
           <div className="space-y-2">
             <label htmlFor="university" className="text-sm font-semibold">
               University *
@@ -176,12 +203,11 @@ export default function NewPostPage() {
               {...form.register("category")}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 appearance-none"
             >
-              <option value="Tutoring">Tutoring</option>
-              <option value="Design">Design</option>
-              <option value="Music">Music</option>
-              <option value="Tech">Tech</option>
-              <option value="Language">Language</option>
-              <option value="Other">Other</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
             {form.formState.errors.category && (
               <p className="text-sm text-destructive">
@@ -207,13 +233,21 @@ export default function NewPostPage() {
               </p>
             )}
           </div>
+
+          {/* ✅ Image upload - mandatory */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold">Photo (Optional)</label>
+            <label className="text-sm font-semibold">
+              Photo <span className="text-red-500">*</span>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Upload a clear photo to build trust and help prevent scams.
+            </p>
             <input
               type="file"
               accept="image/*"
               onChange={handleImageChange}
               className="w-full text-sm"
+              required
             />
             {imagePreview && (
               <img
