@@ -152,13 +152,12 @@ export default function PostDetailPage() {
   const handleShare = async () => {
     const url = window.location.href;
     const title = post?.title || "Check out this post on Skillet!";
-
     if (navigator.share) {
       try {
         await navigator.share({
-          title: title,
+          title,
           text: `Check out this post: ${title}`,
-          url: url,
+          url,
         });
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
@@ -207,6 +206,7 @@ export default function PostDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header with back and share */}
       <div className="flex items-center justify-between mb-6">
         <Link
           href="/feed"
@@ -215,7 +215,6 @@ export default function PostDetailPage() {
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Feed
         </Link>
-
         <button
           onClick={handleShare}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors bg-secondary/50 px-3 py-1.5 rounded-full border border-border"
@@ -226,9 +225,11 @@ export default function PostDetailPage() {
         </button>
       </div>
 
+      {/* Main post card */}
       <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
-        <div className="p-8 md:p-10">
-          <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="p-6 md:p-10">
+          {/* Category + date */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <CategoryBadge
               category={post.category}
               className="px-3 py-1 text-sm"
@@ -239,41 +240,43 @@ export default function PostDetailPage() {
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-display font-extrabold text-foreground leading-tight mb-8">
+          <h1 className="text-3xl md:text-5xl font-display font-extrabold text-foreground leading-tight mb-6">
             {post.title}
           </h1>
 
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex-1 space-y-8">
-              {/* ✅ Image display – fixed height and background */}
-              {post.imageUrl && (
-                <div className="rounded-2xl overflow-hidden max-h-[400px] bg-secondary/20">
-                  <img
-                    src={post.imageUrl}
-                    alt={post.title}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              )}
+          {/* Image (if any) */}
+          {post.imageUrl && (
+            <div className="rounded-2xl overflow-hidden max-h-[400px] bg-secondary/20 mb-6">
+              <img
+                src={post.imageUrl}
+                alt={post.title}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
 
+          {/* Two-column layout */}
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Left: description + ratings */}
+            <div className="flex-1 space-y-6">
               <div>
-                <h3 className="text-lg font-bold font-display mb-3 text-foreground">
+                <h3 className="text-lg font-bold font-display mb-2">
                   About this skill
                 </h3>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {post.description}
                 </p>
-
-                <div className="flex items-center gap-4 mt-4">
-                  <LikeButton postId={post.id} />
-                  <BookmarkButton postId={post.id} />
-                </div>
               </div>
 
+              {/* Like + Bookmark */}
+              <div className="flex items-center gap-4">
+                <LikeButton postId={post.id} />
+                <BookmarkButton postId={post.id} />
+              </div>
+
+              {/* Ratings section */}
               <div>
-                <h3 className="text-lg font-bold font-display mb-3 text-foreground">
-                  Ratings
-                </h3>
+                <h3 className="text-lg font-bold font-display mb-3">Ratings</h3>
                 {postRatings && postRatings.total > 0 ? (
                   <>
                     <div className="flex items-center gap-2 mb-4">
@@ -286,7 +289,6 @@ export default function PostDetailPage() {
                         {postRatings.total !== 1 ? "s" : ""})
                       </span>
                     </div>
-
                     <div className="space-y-4">
                       {postRatings.ratings.map((rating) => (
                         <div
@@ -339,9 +341,10 @@ export default function PostDetailPage() {
                 )}
               </div>
 
+              {/* Additional info (availability, price, university) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {post.availability && (
-                  <div className="bg-secondary/50 rounded-2xl p-5 border border-border/50">
+                  <div className="bg-secondary/50 rounded-2xl p-4 border border-border/50">
                     <div className="flex items-center gap-2 text-foreground font-semibold mb-1">
                       <Clock className="w-4 h-4 text-primary" />
                       Availability
@@ -352,7 +355,7 @@ export default function PostDetailPage() {
                   </div>
                 )}
                 {post.priceRate && (
-                  <div className="bg-secondary/50 rounded-2xl p-5 border border-border/50">
+                  <div className="bg-secondary/50 rounded-2xl p-4 border border-border/50">
                     <div className="flex items-center gap-2 text-foreground font-semibold mb-1">
                       <Tag className="w-4 h-4 text-primary" />
                       Rate
@@ -363,7 +366,7 @@ export default function PostDetailPage() {
                   </div>
                 )}
                 {post.university && (
-                  <div className="bg-secondary/50 rounded-2xl p-5 border border-border/50">
+                  <div className="bg-secondary/50 rounded-2xl p-4 border border-border/50">
                     <div className="flex items-center gap-2 text-foreground font-semibold mb-1">
                       <User className="w-4 h-4 text-primary" />
                       University
@@ -376,8 +379,10 @@ export default function PostDetailPage() {
               </div>
             </div>
 
+            {/* Right: author card & actions */}
             <div className="w-full md:w-72 flex-shrink-0">
               <div className="bg-secondary/30 border border-border/50 rounded-2xl p-6 sticky top-24">
+                {/* Author profile */}
                 <div className="flex flex-col items-center text-center mb-6">
                   <div className="w-20 h-20 rounded-full bg-primary/10 overflow-hidden mb-4 border-2 border-background shadow-sm">
                     {post.author.profileImageUrl ? (
@@ -409,12 +414,12 @@ export default function PostDetailPage() {
                   </p>
                 </div>
 
+                {/* Action buttons */}
                 {post.status === "completed" ? (
                   <>
                     <div className="w-full bg-muted text-muted-foreground font-medium py-3.5 px-4 rounded-xl text-center text-sm border border-border">
                       ✓ Exchange completed
                     </div>
-
                     {!isAuthor && !hasUserRated && !ratingSubmitted && (
                       <div className="mt-3 border border-border rounded-xl p-4">
                         <p className="text-sm font-medium mb-2">
@@ -426,11 +431,7 @@ export default function PostDetailPage() {
                               key={star}
                               type="button"
                               onClick={() => setRatingScore(star)}
-                              className={`text-2xl ${
-                                star <= ratingScore
-                                  ? "text-yellow-400"
-                                  : "text-muted-foreground"
-                              }`}
+                              className={`text-2xl ${star <= ratingScore ? "text-yellow-400" : "text-muted-foreground"}`}
                             >
                               ★
                             </button>
@@ -452,7 +453,6 @@ export default function PostDetailPage() {
                         </button>
                       </div>
                     )}
-
                     {(ratingSubmitted || hasUserRated) && (
                       <div className="mt-3 text-sm text-muted-foreground text-center">
                         ✓ Thanks for your rating!
