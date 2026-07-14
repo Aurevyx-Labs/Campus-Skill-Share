@@ -255,6 +255,31 @@ export default function PostDetailPage() {
             </div>
           )}
 
+          {/* ✅ PRIMARY ACTION BUTTON – placed right under the image */}
+          {!post.status || post.status !== "completed" ? (
+            isAuthor ? (
+              <button
+                onClick={markComplete}
+                disabled={completing}
+                className="w-full bg-primary text-primary-foreground font-bold py-3.5 px-4 rounded-xl transition-all disabled:opacity-50 shadow-md mb-6"
+              >
+                {completing ? "Marking complete..." : "Mark Exchange Complete"}
+              </button>
+            ) : (
+              <Link
+                href={`/chat/${post.author.id}`}
+                className="block w-full bg-primary text-primary-foreground font-bold py-3.5 px-4 rounded-xl text-center transition-all hover:bg-primary/90 shadow-md mb-6"
+              >
+                <MessageSquare className="inline w-5 h-5 mr-2" />
+                Message {post.author.displayName.split(" ")[0]}
+              </Link>
+            )
+          ) : (
+            <div className="w-full bg-muted text-muted-foreground font-medium py-3.5 px-4 rounded-xl text-center text-sm border border-border mb-6">
+              ✓ Exchange completed
+            </div>
+          )}
+
           {/* Two-column layout */}
           <div className="flex flex-col md:flex-row gap-8">
             {/* Left: description + ratings */}
@@ -379,10 +404,9 @@ export default function PostDetailPage() {
               </div>
             </div>
 
-            {/* Right: author card & actions */}
+            {/* Right: author card (profile + rating summary) */}
             <div className="w-full md:w-72 flex-shrink-0">
               <div className="bg-secondary/30 border border-border/50 rounded-2xl p-6 sticky top-24">
-                {/* Author profile */}
                 <div className="flex flex-col items-center text-center mb-6">
                   <div className="w-20 h-20 rounded-full bg-primary/10 overflow-hidden mb-4 border-2 border-background shadow-sm">
                     {post.author.profileImageUrl ? (
@@ -414,70 +438,49 @@ export default function PostDetailPage() {
                   </p>
                 </div>
 
-                {/* Action buttons */}
-                {post.status === "completed" ? (
-                  <>
-                    <div className="w-full bg-muted text-muted-foreground font-medium py-3.5 px-4 rounded-xl text-center text-sm border border-border">
-                      ✓ Exchange completed
+                {/* Rating form (only when completed and user hasn't rated) */}
+                {post.status === "completed" &&
+                  !isAuthor &&
+                  !hasUserRated &&
+                  !ratingSubmitted && (
+                    <div className="mt-3 border border-border rounded-xl p-4">
+                      <p className="text-sm font-medium mb-2">
+                        Rate this exchange
+                      </p>
+                      <div className="flex gap-1 mb-3">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setRatingScore(star)}
+                            className={`text-2xl ${star <= ratingScore ? "text-yellow-400" : "text-muted-foreground"}`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={ratingComment}
+                        onChange={(e) => setRatingComment(e.target.value)}
+                        placeholder="Leave a comment (optional)"
+                        className="w-full border border-border rounded-lg p-2 text-sm mb-3"
+                        rows={2}
+                      />
+                      <button
+                        onClick={submitRating}
+                        disabled={submittingRating || ratingScore === 0}
+                        className="w-full bg-primary text-primary-foreground py-2.5 px-4 rounded-xl transition-all disabled:opacity-50"
+                      >
+                        {submittingRating ? "Submitting..." : "Submit Rating"}
+                      </button>
                     </div>
-                    {!isAuthor && !hasUserRated && !ratingSubmitted && (
-                      <div className="mt-3 border border-border rounded-xl p-4">
-                        <p className="text-sm font-medium mb-2">
-                          Rate this exchange
-                        </p>
-                        <div className="flex gap-1 mb-3">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setRatingScore(star)}
-                              className={`text-2xl ${star <= ratingScore ? "text-yellow-400" : "text-muted-foreground"}`}
-                            >
-                              ★
-                            </button>
-                          ))}
-                        </div>
-                        <textarea
-                          value={ratingComment}
-                          onChange={(e) => setRatingComment(e.target.value)}
-                          placeholder="Leave a comment (optional)"
-                          className="w-full border border-border rounded-lg p-2 text-sm mb-3"
-                          rows={2}
-                        />
-                        <button
-                          onClick={submitRating}
-                          disabled={submittingRating || ratingScore === 0}
-                          className="w-full bg-primary text-primary-foreground py-2.5 px-4 rounded-xl transition-all disabled:opacity-50"
-                        >
-                          {submittingRating ? "Submitting..." : "Submit Rating"}
-                        </button>
-                      </div>
-                    )}
-                    {(ratingSubmitted || hasUserRated) && (
-                      <div className="mt-3 text-sm text-muted-foreground text-center">
-                        ✓ Thanks for your rating!
-                      </div>
-                    )}
-                  </>
-                ) : isAuthor ? (
-                  <button
-                    onClick={markComplete}
-                    disabled={completing}
-                    className="w-full bg-primary text-primary-foreground hover:opacity-90 font-bold py-3.5 px-4 rounded-xl transition-all disabled:opacity-50"
-                  >
-                    {completing
-                      ? "Marking complete..."
-                      : "Mark Exchange Complete"}
-                  </button>
-                ) : (
-                  <Link
-                    href={`/chat/${post.author.id}`}
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                    Message {post.author.displayName.split(" ")[0]}
-                  </Link>
-                )}
+                  )}
+                {(ratingSubmitted || hasUserRated) &&
+                  post.status === "completed" && (
+                    <div className="mt-3 text-sm text-muted-foreground text-center">
+                      ✓ Thanks for your rating!
+                    </div>
+                  )}
               </div>
             </div>
           </div>
