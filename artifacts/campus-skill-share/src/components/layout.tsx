@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
 import { ScrollToTop } from "./ScrollToTop";
+import { BottomNav } from "./BottomNav"; // ✅ Added
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, login, logout } = useAuth();
@@ -258,9 +259,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
       </header>
-      <main className="flex-1 container mx-auto px-4 py-6">{children}</main>
+      {/* ✅ Added bottom padding for mobile nav */}
+      <main className="flex-1 container mx-auto px-4 py-6 pb-20 md:pb-6">
+        {children}
+      </main>
       <ChatbotWidget />
       <ScrollToTop />
+      <BottomNav /> {/* ✅ Added bottom navigation */}
     </div>
   );
 }
