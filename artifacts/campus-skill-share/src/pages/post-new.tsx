@@ -55,11 +55,28 @@ export default function NewPostPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // ✅ Read type from URL (e.g., ?type=skill)
+  const searchParams = new URLSearchParams(window.location.search);
+  const type = searchParams.get("type");
+
+  const typeToCategory: Record<string, string> = {
+    skill: "Tutoring",
+    product: "Textbooks",
+    service: "Tutor Booking",
+    lost: "Other",
+    event: "Other",
+    job: "Other",
+  };
+
+  const defaultCategory = type
+    ? typeToCategory[type] || "Tutoring"
+    : "Tutoring";
+
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
     defaultValues: {
       title: "",
-      category: "Tutoring",
+      category: defaultCategory,
       description: "",
       availability: "",
       priceRate: "",
