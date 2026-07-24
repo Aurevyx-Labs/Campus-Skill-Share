@@ -3,3 +3,5 @@ export * from "./posts";
 export * from "./messages";
 export * from "./pushSubscriptions";
 export * from "./ratings";
+export * from "./likes";
+export * from "./bookmarks";

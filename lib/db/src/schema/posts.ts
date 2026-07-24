@@ -26,6 +26,7 @@ export const postsTable = pgTable("posts", {
   university: varchar("university", { length: 200 }),
   imageUrl: varchar("image_url", { length: 500 }),
   status: postStatusEnum("status").notNull().default("open"),
+  type: varchar("type").default("skill"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

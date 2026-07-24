@@ -53,7 +53,7 @@ export function ChatbotWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-20 right-6 z-60">
       {isOpen && (
         <div className="mb-4 w-80 h-96 bg-card border border-border/40 rounded-lg shadow-xl flex flex-col overflow-hidden">
           <div className="bg-primary text-primary-foreground px-4 py-3 flex justify-between items-center">

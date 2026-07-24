@@ -7,9 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-type PostFormData = PostFormValues & { imageUrl?: string };
 
-// ✅ Full category list (including Marketplace & Freelancing)
+// ✅ Full category list
 const CATEGORIES = [
   "Tutoring",
   "Design",
@@ -55,10 +54,11 @@ export default function NewPostPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // ✅ Read type from URL (e.g., ?type=skill)
+  // Read type from URL (e.g., ?type=skill)
   const searchParams = new URLSearchParams(window.location.search);
-  const type = searchParams.get("type");
+  const urlType = searchParams.get("type");
 
+  // Map from URL type to default category
   const typeToCategory: Record<string, string> = {
     skill: "Tutoring",
     product: "Textbooks",
@@ -68,8 +68,30 @@ export default function NewPostPage() {
     job: "Other",
   };
 
-  const defaultCategory = type
-    ? typeToCategory[type] || "Tutoring"
+  // Map from category to post type (used when submitting)
+  const categoryToType: Record<string, string> = {
+    Tutoring: "skill",
+    Design: "skill",
+    Music: "skill",
+    Tech: "skill",
+    Language: "skill",
+    Other: "skill",
+    Textbooks: "product",
+    Gadgets: "product",
+    Fashion: "product",
+    "Hostel Essentials": "product",
+    "Tutor Booking": "service",
+    Designers: "service",
+    Programmers: "service",
+    Photographers: "service",
+    "Makeup Artists": "service",
+    Tailors: "service",
+    Barbers: "service",
+    // Add study and campus categories later when they exist
+  };
+
+  const defaultCategory = urlType
+    ? typeToCategory[urlType] || "Tutoring"
     : "Tutoring";
 
   const form = useForm<PostFormValues>({
@@ -92,7 +114,6 @@ export default function NewPostPage() {
   }
 
   const onSubmit = async (data: PostFormValues) => {
-    // ✅ Image is mandatory
     if (!imageFile) {
       toast({
         title: "Image required",
@@ -104,7 +125,6 @@ export default function NewPostPage() {
 
     let imageUrl: string | undefined;
 
-    // Upload image
     setUploading(true);
     try {
       const formData = new FormData();
@@ -137,14 +157,16 @@ export default function NewPostPage() {
     }
     setUploading(false);
 
-    // Submit post
+    // ✅ Determine post type based on selected category
+    const type = categoryToType[data.category] || "skill";
+
     createPost.mutate(
-      { data: { ...data, imageUrl } as any },
+      { data: { ...data, imageUrl, type } as any },
       {
         onSuccess: () => {
           toast({
-            title: "Skill posted!",
-            description: "Your skill is now visible on the feed.",
+            title: "Posted!",
+            description: "Your post is now visible on the feed.",
           });
           setLocation("/feed");
         },
@@ -169,9 +191,9 @@ export default function NewPostPage() {
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Feed
         </Link>
-        <h1 className="text-3xl font-display font-bold">Post a Skill</h1>
+        <h1 className="text-3xl font-display font-bold">Create New Post</h1>
         <p className="text-muted-foreground mt-1">
-          Share your expertise with the campus community.
+          Share something with the campus community.
         </p>
       </div>
 
@@ -179,7 +201,7 @@ export default function NewPostPage() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
             <label htmlFor="title" className="text-sm font-semibold">
-              Skill Title *
+              Title *
             </label>
             <input
               id="title"
@@ -241,7 +263,7 @@ export default function NewPostPage() {
               id="description"
               {...form.register("description")}
               rows={5}
-              placeholder="What exactly are you offering? What should someone expect? Mention your experience level."
+              placeholder="What exactly are you offering? What should someone expect?"
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
             {form.formState.errors.description && (
@@ -251,7 +273,7 @@ export default function NewPostPage() {
             )}
           </div>
 
-          {/* ✅ Image upload - mandatory */}
+          {/* Image upload - mandatory */}
           <div className="space-y-2">
             <label className="text-sm font-semibold">
               Photo <span className="text-red-500">*</span>
@@ -318,7 +340,7 @@ export default function NewPostPage() {
                   Posting...
                 </>
               ) : (
-                "Post Skill"
+                "Post"
               )}
             </button>
           </div>

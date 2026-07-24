@@ -22,7 +22,7 @@ router.get("/", async (req: Request, res: Response) => {
   } = req.query as Record<string, string>;
 
   let sqlQuery = `
-    SELECT p.id, p.title, p.category, p.description, p.availability, p.price_rate, p.university, p.image_url, p.created_at,
+    SELECT p.id, p.title, p.category, p.description, p.availability, p.price_rate, p.university, p.image_url, p.created_at, p.type,
            u.id as author_id, u.display_name as author_display_name, u.first_name as author_first_name,
            u.last_name as author_last_name, u.profile_image_url as author_profile_image_url
     FROM posts p
@@ -74,6 +74,7 @@ router.get("/", async (req: Request, res: Response) => {
     priceRate: row.price_rate ?? null,
     university: row.university ?? null,
     imageUrl: row.image_url ?? null,
+    type: row.type ?? "skill",
     createdAt:
       row.created_at instanceof Date
         ? row.created_at.toISOString()
@@ -92,7 +93,7 @@ router.get("/", async (req: Request, res: Response) => {
   return res.json({ posts, total });
 });
 
-// GET /posts/stats - category breakdown (raw SQL)
+// GET /posts/stats - category breakdown (fixed reduce types)
 router.get("/stats", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -107,17 +108,22 @@ router.get("/stats", async (req: Request, res: Response) => {
      ORDER BY count DESC`,
   );
 
-  const categories = result.rows.map((row: any) => ({
-    category: row.category,
-    count: Number(row.count),
-  }));
+  const categories: { category: string; count: number }[] = result.rows.map(
+    (row: any) => ({
+      category: row.category,
+      count: Number(row.count),
+    }),
+  );
 
-  const total = categories.reduce((sum, c) => sum + c.count, 0);
+  const total = categories.reduce(
+    (sum: number, c: { category: string; count: number }) => sum + c.count,
+    0,
+  );
 
   return res.json({ categories, total });
 });
 
-// GET /posts/:id - get a single post by ID
+// GET /posts/:id - get a single post by ID (fixed full query)
 router.get("/:id", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -128,7 +134,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   const postId = req.params.id;
 
   const result = await db.$client.query(
-    `SELECT p.id, p.title, p.description, p.category, p.availability, p.price_rate, p.university, p.image_url, p.created_at, p.status,
+    `SELECT p.id, p.title, p.description, p.category, p.availability, p.price_rate, p.university, p.image_url, p.created_at, p.status, p.type,
             u.id as author_id, u.display_name as author_display_name, u.profile_image_url as author_profile_image_url
      FROM posts p
      JOIN users u ON p.user_id = u.id
@@ -150,6 +156,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     priceRate: row.price_rate,
     university: row.university,
     imageUrl: row.image_url,
+    type: row.type ?? "skill",
     createdAt:
       row.created_at instanceof Date
         ? row.created_at.toISOString()
@@ -179,6 +186,7 @@ router.post("/", async (req: Request, res: Response) => {
     priceRate,
     university,
     imageUrl,
+    type = "skill",
   } = req.body;
 
   if (!title || !category || !description) {
@@ -217,9 +225,9 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   const result = await db.$client.query(
-    `INSERT INTO posts (user_id, title, category, description, availability, price_rate, university, image_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING id, title, category, description, availability, price_rate, university, image_url, created_at`,
+    `INSERT INTO posts (user_id, title, category, description, availability, price_rate, university, image_url, type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, title, category, description, availability, price_rate, university, image_url, created_at, type`,
     [
       session.user.id,
       title,
@@ -229,6 +237,7 @@ router.post("/", async (req: Request, res: Response) => {
       priceRate || null,
       university || null,
       imageUrl || null,
+      type,
     ],
   );
 
@@ -244,6 +253,7 @@ router.post("/", async (req: Request, res: Response) => {
     availability: post.availability ?? null,
     priceRate: post.price_rate ?? null,
     imageUrl: post.image_url ?? null,
+    type: post.type ?? "skill",
     createdAt:
       post.created_at instanceof Date
         ? post.created_at.toISOString()
