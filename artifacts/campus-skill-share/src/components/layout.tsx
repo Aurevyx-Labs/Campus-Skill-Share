@@ -16,10 +16,12 @@ import {
   ChevronDown,
   Moon,
   Sun,
+  Bookmark, // ✅ Added
+  Shield, // ✅ Added
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
 import { ScrollToTop } from "./ScrollToTop";
-import { BottomNav } from "./BottomNav"; // ✅ Added
+import { BottomNav } from "./BottomNav";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, login, logout } = useAuth();
@@ -67,6 +69,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span>Skillet</span>
           </Link>
 
+          {/* ✅ Main nav — cleaned up */}
           <nav className="hidden md:flex items-center gap-6">
             <Link
               to="/feed"
@@ -92,20 +95,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               Explore People
             </Link>
-            <Link
-              to="/bookmarks"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              Saved
-            </Link>
-            {profile?.role === "admin" && (
-              <Link
-                to="/admin"
-                className="text-sm font-medium hover:text-primary transition-colors"
-              >
-                Admin
-              </Link>
-            )}
           </nav>
 
           <div className="flex items-center gap-4">
@@ -135,6 +124,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Edit Profile */}
                     <Link
                       to="/profile"
                       className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
@@ -143,6 +133,29 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       <User className="w-4 h-4" />
                       Edit Profile
                     </Link>
+
+                    {/* ✅ Saved */}
+                    <Link
+                      to="/bookmarks"
+                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <Bookmark className="w-4 h-4" />
+                      Saved
+                    </Link>
+
+                    {/* ✅ Admin (only for admins) */}
+                    {profile?.role === "admin" && (
+                      <Link
+                        to="/admin"
+                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin
+                      </Link>
+                    )}
+
                     <div className="border-t border-border my-1"></div>
 
                     <button
@@ -167,7 +180,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
                     <div className="border-t border-border my-1"></div>
 
-                    {/* ✅ Logout with confirmation */}
+                    {/* Logout with confirmation */}
                     <button
                       onClick={() => {
                         if (
@@ -208,6 +221,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
+        {/* Mobile menu (unchanged — we keep Saved and Admin here) */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-md">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
@@ -259,13 +273,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
       </header>
-      {/* ✅ Added bottom padding for mobile nav */}
       <main className="flex-1 container mx-auto px-4 py-6 pb-20 md:pb-6">
         {children}
       </main>
       <ChatbotWidget />
       <ScrollToTop />
-      <BottomNav /> {/* ✅ Added bottom navigation */}
+      <BottomNav />
     </div>
   );
 }
