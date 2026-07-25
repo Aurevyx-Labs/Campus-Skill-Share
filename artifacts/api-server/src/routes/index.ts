@@ -9,8 +9,8 @@ import chatbotRouter from "../chatbot";
 import pushRouter from "./push";
 import uploadRouter from "./upload";
 import ratingsRouter from "./ratings";
-//import likesRouter from "./likes";
-//import bookmarksRouter from "./bookmarks";
+import likesRouter from "./likes";
+import bookmarksRouter from "./bookmarks";
 
 const router: IRouter = Router();
 
@@ -24,7 +24,7 @@ router.use("/chatbot", chatbotRouter);
 router.use("/push", pushRouter);
 router.use("/upload", uploadRouter);
 router.use("/ratings", ratingsRouter);
-//router.use("/likes", likesRouter);
-//router.use("/bookmarks", bookmarksRouter);
+router.use("/likes", likesRouter);
+router.use("/bookmarks", bookmarksRouter);
 
 export default router;
