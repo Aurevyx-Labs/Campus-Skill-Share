@@ -16,6 +16,7 @@ import NotFound from "./pages/not-found";
 import UsersDirectoryPage from "./pages/users-directory";
 import UserPostsPage from "./pages/user-posts";
 import BookmarksPage from "./pages/Bookmarks";
+import SettingsPage from "./pages/settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ function Router() {
         <Route path="/users" component={UsersDirectoryPage} />
         <Route path="/user/:userId" component={UserPostsPage} />
         <Route path="/bookmarks" component={BookmarksPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

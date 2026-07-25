@@ -16,8 +16,9 @@ import {
   ChevronDown,
   Moon,
   Sun,
-  Bookmark, // ✅ Added
-  Shield, // ✅ Added
+  Bookmark,
+  Shield,
+  Settings, // ✅ Added
 } from "lucide-react";
 import { ChatbotWidget } from "../ChatbotWidget";
 import { ScrollToTop } from "./ScrollToTop";
@@ -156,6 +157,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       </Link>
                     )}
 
+                    {/* ✅ Settings — always visible */}
+                    <Link
+                      to="/settings"
+                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-secondary/50 transition-colors"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </Link>
+
                     <div className="border-t border-border my-1"></div>
 
                     <button
@@ -221,7 +232,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {/* Mobile menu (unchanged — we keep Saved and Admin here) */}
+        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-md">
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
@@ -263,6 +274,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   Admin
                 </Link>
               )}
+              <Link
+                to="/settings"
+                className="text-sm font-medium hover:text-primary transition-colors"
+              >
+                Settings
+              </Link>
               <Link
                 to="/profile"
                 className="text-sm font-medium hover:text-primary transition-colors"
