@@ -6,10 +6,10 @@ export const bookmarksTable = pgTable(
   "bookmarks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: varchar("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
-    postId: uuid("post_id")
+    postId: varchar("post_id")
       .notNull()
       .references(() => postsTable.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true })
