@@ -31,7 +31,7 @@ router.get("/", async (req: Request, res: Response) => {
   return res.json({ users });
 });
 
-// GET /api/users/me - current user profile
+// GET /api/users/me - current user profile (includes preferences)
 router.get("/me", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;
@@ -42,7 +42,7 @@ router.get("/me", async (req: Request, res: Response) => {
   const userId = session.user.id;
 
   const result = await db.$client.query(
-    `SELECT id, email, display_name, first_name, last_name, profile_image_url, role, university, created_at
+    `SELECT id, email, display_name, first_name, last_name, profile_image_url, role, university, created_at, preferences
      FROM users
      WHERE id = $1`,
     [userId],
@@ -60,6 +60,7 @@ router.get("/me", async (req: Request, res: Response) => {
     role: u.role,
     profileImageUrl: u.profile_image_url ?? null,
     university: u.university ?? null,
+    preferences: u.preferences ?? {},
     createdAt:
       u.created_at instanceof Date ? u.created_at.toISOString() : u.created_at,
   });
@@ -122,7 +123,7 @@ router.patch("/me", async (req: Request, res: Response) => {
     UPDATE users
     SET ${updates.join(", ")}
     WHERE id = $${paramIndex}
-    RETURNING id, email, display_name, first_name, last_name, profile_image_url, role, university, created_at
+    RETURNING id, email, display_name, first_name, last_name, profile_image_url, role, university, created_at, preferences
   `;
 
   const result = await db.$client.query(query, values);
@@ -139,12 +140,73 @@ router.patch("/me", async (req: Request, res: Response) => {
     role: u.role,
     profileImageUrl: u.profile_image_url ?? null,
     university: u.university ?? null,
+    preferences: u.preferences ?? {},
     createdAt:
       u.created_at instanceof Date ? u.created_at.toISOString() : u.created_at,
   });
 });
 
+// PATCH /api/users/me/preferences - update user preferences
+router.patch("/me/preferences", async (req: Request, res: Response) => {
+  const sid = getSessionId(req);
+  const session = sid ? await getSession(sid) : null;
+  if (!session?.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const userId = session.user.id;
+  const { preferences } = req.body;
+
+  if (!preferences || typeof preferences !== "object") {
+    return res.status(400).json({ error: "Invalid preferences data" });
+  }
+
+  const result = await db.$client.query(
+    `UPDATE users SET preferences = $1 WHERE id = $2 RETURNING preferences`,
+    [preferences, userId],
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  return res.json({ preferences: result.rows[0].preferences });
+});
+
+// PATCH /api/users/me/password - change password (placeholder)
+router.patch("/me/password", async (req: Request, res: Response) => {
+  const sid = getSessionId(req);
+  const session = sid ? await getSession(sid) : null;
+  if (!session?.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  // Since we use Firebase Auth, password change isn't handled here.
+  // This is a placeholder for future implementation (e.g., email link).
+  return res.status(501).json({ error: "Not implemented" });
+});
+
+// DELETE /api/users/me - delete account
+router.delete("/me", async (req: Request, res: Response) => {
+  const sid = getSessionId(req);
+  const session = sid ? await getSession(sid) : null;
+  if (!session?.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const userId = session.user.id;
+
+  // Delete user from database (cascade will delete posts, ratings, etc.)
+  await db.$client.query(`DELETE FROM users WHERE id = $1`, [userId]);
+
+  // Clear session cookie
+  res.clearCookie("sid", { path: "/" });
+
+  return res.json({ success: true });
+});
+
 // GET /api/users/:userId - get a specific user by ID (for public profile)
+// This must be the LAST route to avoid conflicting with /me and /me/*
 router.get("/:userId", async (req: Request, res: Response) => {
   const sid = getSessionId(req);
   const session = sid ? await getSession(sid) : null;

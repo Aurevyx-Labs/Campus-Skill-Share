@@ -13,35 +13,28 @@ import {
   BookOpen,
   Moon,
   LogOut,
-  Settings,
   Lock,
   Bell,
   Shield,
-  CheckCircle,
   AlertTriangle,
   Upload,
   Eye,
   EyeOff,
   Key,
-  Globe,
-  Users,
-  UserCheck,
   Link as LinkIcon,
   Database,
   HelpCircle,
   Info,
   FileText,
   ExternalLink,
+  UserCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { data: profile, refetch } = useGetMyProfile({
-    query: {
-      enabled: true,
-      queryKey: getGetMyProfileQueryKey(),
-    },
+    query: { enabled: true, queryKey: getGetMyProfileQueryKey() },
   });
   const { toast } = useToast();
 
@@ -51,23 +44,21 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [darkMode, setDarkMode] = useState(false);
 
-  // Change Password
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Notifications
+  // Preferences – fixed generic types
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
-
-  // Privacy
   const [profileVisibility, setProfileVisibility] = useState<
     "public" | "private"
   >("public");
   const [messagingPermissions, setMessagingPermissions] = useState<
     "anyone" | "followers"
   >("anyone");
+
+  // Change Password
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Danger Zone
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -80,6 +71,17 @@ export default function SettingsPage() {
       setDisplayName(profile.displayName || "");
       setUniversity((profile as any).university || "");
       setBio((profile as any).bio || "");
+      const prefs = (profile as any).preferences || {};
+      setPushNotifications(
+        prefs.pushNotifications !== undefined ? prefs.pushNotifications : true,
+      );
+      setEmailNotifications(
+        prefs.emailNotifications !== undefined
+          ? prefs.emailNotifications
+          : true,
+      );
+      setProfileVisibility(prefs.profileVisibility || "public");
+      setMessagingPermissions(prefs.messagingPermissions || "anyone");
     }
   }, [profile]);
 
@@ -104,30 +106,46 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/users/me", {
+      // Save profile fields
+      const profileRes = await fetch("/api/users/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ displayName, university, bio }),
       });
-      if (res.ok) {
-        toast({
-          title: "Settings saved",
-          description: "Your profile has been updated.",
-        });
-        refetch();
-      } else {
-        const data = await res.json();
-        toast({
-          title: "Failed to save",
-          description: data.error || "Please try again.",
-          variant: "destructive",
-        });
+      if (!profileRes.ok) {
+        const data = await profileRes.json();
+        throw new Error(data.error || "Failed to save profile");
       }
-    } catch (err) {
+
+      // Save preferences
+      const prefsRes = await fetch("/api/users/me/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          preferences: {
+            pushNotifications,
+            emailNotifications,
+            profileVisibility,
+            messagingPermissions,
+          },
+        }),
+      });
+      if (!prefsRes.ok) {
+        const data = await prefsRes.json();
+        throw new Error(data.error || "Failed to save preferences");
+      }
+
       toast({
-        title: "Error",
-        description: "Network error. Please try again.",
+        title: "Settings saved",
+        description: "Your profile and preferences have been updated.",
+      });
+      refetch();
+    } catch (err: any) {
+      toast({
+        title: "Failed to save",
+        description: err.message || "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -135,8 +153,23 @@ export default function SettingsPage() {
     }
   };
 
-  // Dummy handlers
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "New passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
     toast({
       title: "Password change",
       description: "This feature is coming soon.",
@@ -150,11 +183,33 @@ export default function SettingsPage() {
     });
   };
 
-  const handleDeleteAccount = () => {
-    toast({
-      title: "Account deletion",
-      description: "This action is not yet available.",
-    });
+  const handleDeleteAccount = async () => {
+    try {
+      const res = await fetch("/api/users/me", {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({
+          title: "Account deleted",
+          description: "Your account has been permanently removed.",
+        });
+        logout();
+      } else {
+        const data = await res.json();
+        toast({
+          title: "Failed to delete",
+          description: data.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+    }
     setShowDeleteModal(false);
   };
 
@@ -163,18 +218,10 @@ export default function SettingsPage() {
       setProfileVisibility(
         profileVisibility === "public" ? "private" : "public",
       );
-      toast({
-        title: "Profile visibility updated",
-        description: `Now set to ${profileVisibility === "public" ? "private" : "public"}`,
-      });
     } else {
       setMessagingPermissions(
         messagingPermissions === "anyone" ? "followers" : "anyone",
       );
-      toast({
-        title: "Messaging permissions updated",
-        description: `Now set to ${messagingPermissions === "anyone" ? "followers" : "anyone"}`,
-      });
     }
   };
 
@@ -186,6 +233,7 @@ export default function SettingsPage() {
   };
 
   const handleClearCache = () => {
+    localStorage.clear();
     toast({
       title: "Cache cleared",
       description: "Your local cache has been cleared.",
@@ -204,7 +252,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-in fade-in duration-500">
+    <div className="max-w-3xl mx-auto pb-32 animate-in fade-in duration-500">
       <div className="flex items-center gap-4 mb-8">
         <Link
           href="/feed"
@@ -370,7 +418,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Connected Accounts Section */}
+        {/* Connected Accounts */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <LinkIcon className="w-5 h-5 text-primary" />
@@ -414,7 +462,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Notifications Section */}
+        {/* Notifications */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary" />
@@ -456,7 +504,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Privacy Section */}
+        {/* Privacy */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
@@ -528,29 +576,27 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Verification Section */}
+        {/* Verification */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-primary" />✅ Verification
           </h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">🎓 Student ID</p>
-                <p className="text-sm text-muted-foreground">Not verified</p>
-              </div>
-              <button
-                onClick={handleUploadID}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-secondary/50 transition-colors text-sm"
-              >
-                <Upload className="w-4 h-4" />
-                Upload
-              </button>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">🎓 Student ID</p>
+              <p className="text-sm text-muted-foreground">Not verified</p>
             </div>
+            <button
+              onClick={handleUploadID}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-secondary/50 transition-colors text-sm"
+            >
+              <Upload className="w-4 h-4" />
+              Upload
+            </button>
           </div>
         </div>
 
-        {/* Data & Storage Section */}
+        {/* Data & Storage */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Database className="w-5 h-5 text-primary" />
@@ -576,7 +622,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Help & Support Section */}
+        {/* Help & Support */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-primary" />
@@ -610,7 +656,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* About Section */}
+        {/* About */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
             <Info className="w-5 h-5 text-primary" />

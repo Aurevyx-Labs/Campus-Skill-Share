@@ -1,16 +1,9 @@
-import { pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const categoryEnum = pgEnum("category", [
-  "Tutoring",
-  "Design",
-  "Music",
-  "Tech",
-  "Language",
-  "Other",
-]);
+// ✅ Keep this enum for post status (not used in migration conflict)
 export const postStatusEnum = pgEnum("post_status", ["open", "completed"]);
 
 export const postsTable = pgTable("posts", {
@@ -19,7 +12,7 @@ export const postsTable = pgTable("posts", {
     .default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   title: varchar("title", { length: 150 }).notNull(),
-  category: categoryEnum("category").notNull(),
+  category: text("category").notNull(), // ✅ Changed from enum to text
   description: text("description").notNull(),
   availability: varchar("availability", { length: 200 }),
   priceRate: varchar("price_rate", { length: 100 }),

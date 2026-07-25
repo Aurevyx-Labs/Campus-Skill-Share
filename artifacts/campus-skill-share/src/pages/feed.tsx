@@ -7,11 +7,22 @@ import {
   getGetPostStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "../hooks/useAuth";
-import { Search, Plus, MapPin, Clock, Share2, Crown } from "lucide-react";
+import { Search, Plus, Clock, Share2, Crown } from "lucide-react"; // ✅ removed MapPin
 import { CategoryBadge } from "@/components/CategoryBadge";
-import { useQueryClient } from "@tanstack/react-query";
 import { LikeButton } from "@/components/LikeButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import { useTab } from "../context/TabContext";
+import type { TabKey } from "../context/TabContext"; // ✅ import type
+
+// ✅ Define tabs
+const TABS = [
+  { key: "all", label: "🏠 All", type: null },
+  { key: "skills", label: "📚 Skills", type: "skill" },
+  { key: "marketplace", label: "🛒 Marketplace", type: "product" },
+  { key: "freelance", label: "💼 Freelance", type: "service" },
+  { key: "study", label: "📖 Study Materials", type: "study" },
+  { key: "campus", label: "🏠 Campus", type: "campus" },
+];
 
 const BASE_CATEGORIES = [
   "Tutoring",
@@ -20,28 +31,43 @@ const BASE_CATEGORIES = [
   "Tech",
   "Language",
   "Other",
+  "Textbooks",
+  "Gadgets",
+  "Fashion",
+  "Hostel Essentials",
+  "Tutor Booking",
+  "Designers",
+  "Programmers",
+  "Photographers",
+  "Makeup Artists",
+  "Tailors",
+  "Barbers",
 ];
 
 export default function FeedPage() {
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("All");
 
+  const { activeTab, setActiveTab } = useTab();
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) setLocation("/");
   }, [authLoading, isAuthenticated, setLocation]);
 
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
+  const activeType = TABS.find((t) => t.key === activeTab)?.type;
+
   const queryParams = {
     ...(debouncedSearch && { search: debouncedSearch }),
     ...(category !== "All" && { category }),
+    ...(activeType && { type: activeType }),
   };
 
   const { data, isLoading } = useListPosts(queryParams, {
@@ -55,7 +81,6 @@ export default function FeedPage() {
     query: { enabled: isAuthenticated, queryKey: getGetPostStatsQueryKey() },
   });
 
-  // Time-based greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return { text: "Good morning", emoji: "🌅" };
@@ -64,7 +89,6 @@ export default function FeedPage() {
   };
   const greeting = getGreeting();
 
-  // Share function for feed cards
   const handleShare = async (postId: string, title: string) => {
     const url = `${window.location.origin}/post/${postId}`;
     if (navigator.share) {
@@ -91,7 +115,6 @@ export default function FeedPage() {
 
   if (authLoading || !isAuthenticated) return null;
 
-  // Merge base categories with actual stats to show counts
   const getCategoryCount = (catName: string) => {
     const stat = stats?.categories.find((s) => s.category === catName);
     return stat ? stat.count : 0;
@@ -117,47 +140,78 @@ export default function FeedPage() {
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search skills (e.g. Calculus, Figma, Guitar)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
-            data-testid="input-search"
-          />
-        </div>
-        <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 hide-scrollbar snap-x">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+        <input
+          type="text"
+          placeholder="Search skills (e.g. Calculus, Figma, Guitar)..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+          data-testid="input-search"
+        />
+      </div>
+
+      {/* Tabs */}
+      <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 hide-scrollbar snap-x border-b border-border/40">
+        {TABS.map((tab) => (
           <button
-            onClick={() => setCategory("All")}
-            className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-medium text-sm transition-colors snap-center flex items-center gap-2 ${category === "All" ? "bg-foreground text-background shadow-sm" : "bg-card border border-border text-foreground hover:bg-secondary"}`}
-            data-testid={`filter-All`}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as TabKey)} // ✅ cast to TabKey
+            className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-medium text-sm transition-colors snap-center ${
+              activeTab === tab.key
+                ? "bg-foreground text-background shadow-sm"
+                : "bg-card border border-border text-foreground hover:bg-secondary"
+            }`}
           >
-            All
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Category filter (optional) */}
+      <div className="flex overflow-x-auto pb-2 sm:pb-0 gap-2 hide-scrollbar snap-x">
+        <button
+          onClick={() => setCategory("All")}
+          className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-medium text-sm transition-colors snap-center flex items-center gap-2 ${
+            category === "All"
+              ? "bg-foreground text-background shadow-sm"
+              : "bg-card border border-border text-foreground hover:bg-secondary"
+          }`}
+        >
+          All
+          <span
+            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+              category === "All"
+                ? "bg-background/20"
+                : "bg-secondary-foreground/10"
+            }`}
+          >
+            {stats?.total || 0}
+          </span>
+        </button>
+        {BASE_CATEGORIES.map((c) => (
+          <button
+            key={c}
+            onClick={() => setCategory(c)}
+            className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-medium text-sm transition-colors snap-center flex items-center gap-2 ${
+              category === c
+                ? "bg-foreground text-background shadow-sm"
+                : "bg-card border border-border text-foreground hover:bg-secondary"
+            }`}
+          >
+            {c}
             <span
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${category === "All" ? "bg-background/20" : "bg-secondary-foreground/10"}`}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                category === c
+                  ? "bg-background/20"
+                  : "bg-secondary-foreground/10"
+              }`}
             >
-              {stats?.total || 0}
+              {getCategoryCount(c)}
             </span>
           </button>
-          {BASE_CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-xl font-medium text-sm transition-colors snap-center flex items-center gap-2 ${category === c ? "bg-foreground text-background shadow-sm" : "bg-card border border-border text-foreground hover:bg-secondary"}`}
-              data-testid={`filter-${c}`}
-            >
-              {c}
-              <span
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${category === c ? "bg-background/20" : "bg-secondary-foreground/10"}`}
-              >
-                {getCategoryCount(c)}
-              </span>
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
       {isLoading ? (
@@ -188,7 +242,7 @@ export default function FeedPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data?.posts.map((post, index) => (
+          {data?.posts.map((post: any, index: number) => (
             <Link
               key={post.id}
               href={`/post/${post.id}`}
@@ -198,7 +252,7 @@ export default function FeedPage() {
                 animationDelay: `${index * 50}ms`,
               }}
             >
-              {/* ✅ Image display – fixed height and background */}
+              {/* Image using cast */}
               {post.imageUrl && (
                 <div className="mb-4 -mt-6 -mx-6 rounded-t-2xl overflow-hidden max-h-48 bg-secondary/20">
                   <img
@@ -224,7 +278,6 @@ export default function FeedPage() {
                 {post.description}
               </p>
 
-              {/* Like + Bookmark + Share */}
               <div className="flex items-center gap-2 mb-3">
                 <LikeButton postId={post.id} />
                 <BookmarkButton postId={post.id} />
@@ -258,7 +311,7 @@ export default function FeedPage() {
                   </div>
                   <span className="text-sm font-medium text-foreground truncate max-w-[120px] flex items-center gap-1">
                     {post.author.displayName}
-                    {post.author.role === "admin" && (
+                    {(post.author as any).role === "admin" && (
                       <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
                     )}
                   </span>

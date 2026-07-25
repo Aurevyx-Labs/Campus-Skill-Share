@@ -2,6 +2,7 @@ import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch, Router as WouterRouter } from "wouter";
 import { AppLayout } from "./components/layout";
+import { TabProvider } from "./context/TabContext"; // ✅ ADDED
 
 // Pages
 import LandingPage from "./pages/landing";
@@ -51,12 +52,16 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <Router />
-      </WouterRouter>
-      <Toaster position="top-center" richColors />
-    </QueryClientProvider>
+    <TabProvider>
+      {" "}
+      {/* ✅ WRAPPED */}
+      <QueryClientProvider client={queryClient}>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Router />
+        </WouterRouter>
+        <Toaster position="top-center" richColors />
+      </QueryClientProvider>
+    </TabProvider>
   );
 }
 

@@ -1,27 +1,6 @@
+import { pgTable, varchar, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import {
-  index,
-  jsonb,
-  pgEnum,
-  pgTable,
-  timestamp,
-  varchar,
-} from "drizzle-orm/pg-core";
 
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
-export const sessionsTable = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
-
-export const roleEnum = pgEnum("role", ["student", "admin"]);
-
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const usersTable = pgTable("users", {
   id: varchar("id")
     .primaryKey()
@@ -32,15 +11,23 @@ export const usersTable = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   displayName: varchar("display_name"),
   university: varchar("university"),
-  role: roleEnum("role").notNull().default("student"),
+  role: varchar("role").default("student").notNull(),
+  preferences: jsonb("preferences").default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
     .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
     .$onUpdate(() => new Date()),
 });
 
-export type UpsertUser = typeof usersTable.$inferInsert;
+// ✅ Add this table
+export const sessionsTable = pgTable("sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { withTimezone: true }).notNull(),
+});
+
 export type User = typeof usersTable.$inferSelect;
+export type NewUser = typeof usersTable.$inferInsert;
