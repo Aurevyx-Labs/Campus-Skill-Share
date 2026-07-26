@@ -1,5 +1,11 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+} from "firebase/auth";
+import type { UserCredential } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,7 +21,11 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const provider = new GoogleAuthProvider();
 
-export const signInWithGoogle = async () => {
-  const result = await signInWithPopup(auth, provider);
-  return result.user;
+export const signInWithGoogle = async (): Promise<void> => {
+  await signInWithRedirect(auth, provider);
 };
+
+export const getRedirectResultAsync =
+  async (): Promise<UserCredential | null> => {
+    return getRedirectResult(auth);
+  };
