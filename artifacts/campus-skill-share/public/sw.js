@@ -24,11 +24,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Only handle requests to our own origin — let all cross-origin
+  // requests (like Firebase/Google auth calls) pass through untouched.
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
   if (event.request.mode === "navigate") {
     event.respondWith(fetch(event.request).catch(() => caches.match("/")));
     return;
   }
-
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -55,7 +61,6 @@ self.addEventListener("push", (event) => {
     title: "New message",
     body: "You have a new message on Skillet",
   };
-
   if (event.data) {
     try {
       data = event.data.json();
@@ -63,7 +68,6 @@ self.addEventListener("push", (event) => {
       data.body = event.data.text();
     }
   }
-
   event.waitUntil(
     self.registration.showNotification(data.title || "Skillet", {
       body: data.body || "You have a new notification",
@@ -78,7 +82,6 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/chats";
-
   event.waitUntil(
     clients.matchAll({ type: "window" }).then((clientsList) => {
       for (const client of clientsList) {
